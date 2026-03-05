@@ -15,7 +15,7 @@ class Ricetta(BaseModel):
     nome:str=Field(
         ...,
         min_length=2,
-        max_length=100
+        max_length=40
     )
     ingredienti: List[Ingredienti]
     porzioni: int=Field(
