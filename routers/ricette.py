@@ -1,71 +1,63 @@
-from fastapi import FastAPI, HTTPException, status, APIRouter
-from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from typing import Optional
+from schemas import Ricetta
+from database import get_db
+from models import RicettaDB
 
 router = APIRouter(prefix="/ricette", tags=["Ricette"])
 
-app=FastAPI(title="prima app", description="api di esempio")
+@router.post("/", status_code=201)
+def postRicetta(ricetta: Ricetta, db: Session = Depends(get_db)):
+    nuova = RicettaDB(
+        nome=ricetta.nome,
+        porzioni=ricetta.porzioni,
+        tempoPreparazione=ricetta.tempoPreparazione,
+        difficolta=ricetta.difficolta
+    )
+    db.add(nuova)       # prepara l'inserimento
+    db.commit()         # salva nel database
+    db.refresh(nuova)   # rileggi dal DB per avere l'id
+    return nuova
 
-class Ingredienti(BaseModel):
-    nome:str
-    quantita:str
-    opzionale:bool=False
-
-class Ricetta(BaseModel):
-    nome:str=Field(
-        ...,
-        min_length=2,
-        max_length=40
-    )
-    ingredienti: List[Ingredienti]
-    porzioni: int=Field(
-        default=4, 
-        ge=1,
-        le=20
-    )
-    tempoPreparazione: int=Field(
-        gt=0
-    )
-    difficolta: Literal["facile", "media", "difficile"]="media"
+@router.get("/")
+def filtri(difficolta: Optional[str] = None, maxMinuti: Optional[int] = None, porzioni: Optional[int] = None, db: Session = Depends(get_db)):
     
-ricetteDb:dict= {}
-prossimoId:int =1
+    risultati = db.query(RicettaDB).all()
     
-@router.post("/",status_code=201)
-def postRicetta(ricetta:Ricetta):
-    global prossimoId
-    ricetteDb[prossimoId]={"id":prossimoId, **ricetta.model_dump()}
-    prossimoId+=1
-    return getRicetta(prossimoId-1)
-
+    if difficolta is not None:
+        risultati = [r for r in risultati if difficolta == r.get("difficolta")]
+    if maxMinuti is not None:
+        risultati = [r for r in risultati if r.get("tempoPreparazione") <= maxMinuti]
+    if porzioni is not None:
+        risultati = [r for r in risultati if r.get("porzioni") >= porzioni]
+    return risultati
 
 @router.get("/{idRicetta}")
-def getRicetta(idRicetta:int):
-    if not idRicetta in ricetteDb:
+def getRicetta(idRicetta: int, db: Session = Depends(get_db)):
+    ricetta = db.query(RicettaDB).filter(RicettaDB.id == idRicetta).first()
+    if ricetta is None:
         raise HTTPException(status_code=404, detail="Ricetta non trovata")
-    return ricetteDb[idRicetta]
-    
+    return ricetta
+
 @router.put("/{idRicetta}")
-def putRicetta(idRicetta:int, ricetta:Ricetta):
-    if not idRicetta in ricetteDb:
+def putRicetta(idRicetta: int, ricetta: Ricetta, db: Session = Depends(get_db)):
+    esistente = db.query(RicettaDB).filter(RicettaDB.id == idRicetta).first()
+    if esistente is None:
         raise HTTPException(status_code=404, detail="Ricetta non trovata")
-    ricetteDb[idRicetta]={"id":idRicetta, **ricetta.model_dump()}
-    return ricetteDb[idRicetta]
+    esistente.nome = ricetta.nome
+    esistente.porzioni = ricetta.porzioni
+    esistente.tempoPreparazione = ricetta.tempoPreparazione
+    esistente.difficolta = ricetta.difficolta
+    
+    db.commit()
+    db.refresh(esistente)
+    return esistente
 
 @router.delete("/{idRicetta}", status_code=204)
-def removeRicetta(idRicetta:int):
-    if not idRicetta in ricetteDb:
+def removeRicetta(idRicetta: int, db: Session = Depends(get_db)):
+    ricetta=db.query(RicettaDB).filter(RicettaDB.id == idRicetta).first()
+    if ricetta is None:
         raise HTTPException(status_code=404, detail="Ricetta non trovata")
-    del ricetteDb[idRicetta]
-    
-@router.get("/")
-def filtri(difficolta: Optional[str]=None,maxMinuti:Optional[int]=None,porzioni:Optional[int]=None):
-    print("ciap")
-    risultati=list(ricetteDb.values())
-    if difficolta is not None:
-        risultati=[r for r in risultati if difficolta==r.get("difficolta")]
-    if maxMinuti is not None:
-        risultati=[r for r in risultati if r.get("tempoPreparazione")<=maxMinuti]
-    if porzioni is not None:
-        risultati=[r for r in risultati if r.get("porzioni")>=porzioni]
-    return risultati
+    db.delete(ricetta)
+    db.commit()
