@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, status, APIRouter
 from pydantic import BaseModel, Field
 from typing import Optional, List, Literal
-from ricette import Ricetta
+from routers.ricette import Ricetta
 
 router = APIRouter(prefix="/piani", tags=["Piani"])
 
