@@ -17,4 +17,4 @@ class Piano(BaseModel):
     giorno: str
     nome: str = Field(..., min_length=2, max_length=40)
     tipoPasto: Literal["colazione", "spuntino", "pranzo", "merenda", "cena"] = "colazione"
-    ricetta: Ricetta
+    ricettaId: Optional[int]=None
