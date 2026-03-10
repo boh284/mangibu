@@ -4,7 +4,7 @@ from typing import Optional, List, Literal
 class Ingredienti(BaseModel):
     nome: str
     quantita: str
-    opzionale: bool = False
+    facoltativo: bool = False
 
 class Ricetta(BaseModel):
     nome: str = Field(..., min_length=2, max_length=40)

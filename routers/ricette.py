@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from schemas import Ricetta
 from database import get_db
-from models import RicettaDB
+from models import RicettaDB, IngredienteDB, RicettaIngredienteDB
 
 router = APIRouter(prefix="/ricette", tags=["Ricette"])
 
@@ -15,9 +15,28 @@ def postRicetta(ricetta: Ricetta, db: Session = Depends(get_db)):
         tempoPreparazione=ricetta.tempoPreparazione,
         difficolta=ricetta.difficolta
     )
-    db.add(nuova)       # prepara l'inserimento
-    db.commit()         # salva nel database
-    db.refresh(nuova)   # rileggi dal DB per avere l'id
+    db.add(nuova)       
+    db.flush()
+    
+    for ing in ricetta.ingredienti:
+        ingrediente = db.query(IngredienteDB).filter(IngredienteDB.nome==ing.nome).first()
+        if not ingrediente:
+            ingrediente = IngredienteDB(
+                nome=ing.nome
+            )
+            db.add(ingrediente)
+            db.flush()
+            
+        nuovoLegame=RicettaIngredienteDB(
+            ricettaId=nuova.id,
+            ingredienteId=ingrediente.id,
+            quantita=ing.quantita,
+            facoltativo=ing.facoltativo
+        )
+        
+        db.add(nuovoLegame)
+        
+    db.commit()
     return nuova
 
 @router.get("/")
@@ -26,11 +45,11 @@ def filtri(difficolta: Optional[str] = None, maxMinuti: Optional[int] = None, po
     risultati = db.query(RicettaDB).all()
     
     if difficolta is not None:
-        risultati = [r for r in risultati if difficolta == r.get("difficolta")]
+        risultati = [r for r in risultati if difficolta == r.difficolta]
     if maxMinuti is not None:
-        risultati = [r for r in risultati if r.get("tempoPreparazione") <= maxMinuti]
+        risultati = [r for r in risultati if r.tempoPreparazione <= maxMinuti]
     if porzioni is not None:
-        risultati = [r for r in risultati if r.get("porzioni") >= porzioni]
+        risultati = [r for r in risultati if r.porzioni >= porzioni]
     return risultati
 
 @router.get("/{idRicetta}")
