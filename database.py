@@ -1,13 +1,11 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 
-# sqlite:/// → tipo di database
-# ./ricettario.db → file nella cartella corrente
-engine = create_engine(
-    "sqlite:///./ricettario.db",
-    connect_args={"check_same_thread": False}
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://mangibu:mangibu@localhost:5432/mangibu")
+
+engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(
     autocommit=False,

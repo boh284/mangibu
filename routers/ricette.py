@@ -66,6 +66,7 @@ def putRicetta(idRicetta: int, ricetta: Ricetta, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Ricetta non trovata")
     esistente.nome = ricetta.nome
     esistente.porzioni = ricetta.porzioni
+    esistente.ingredienti=ricetta.ingredienti
     esistente.tempoPreparazione = ricetta.tempoPreparazione
     esistente.difficolta = ricetta.difficolta
     
