@@ -13,6 +13,8 @@ class RicettaDB(Base):
     ingredienti = relationship("RicettaIngredienteDB", lazy="joined")
     proprietarioId = Column(Integer, ForeignKey("utenti.id"), nullable=False)
     proprietario = relationship("UtenteDB", lazy="joined")
+    condivisioni = relationship("CondivisioniDB", lazy="joined")
+
     
 class PianoDB(Base):
     __tablename__ = "piani"
@@ -50,4 +52,9 @@ class UtenteDB(Base):
     passwordHash=Column(String, nullable=False)
     attivo=Column(Boolean, default=True)
 
+class CondivisioniDB(Base):
+    __tablename__="ricette_condivise"
     
+    ricettaId=Column(Integer, ForeignKey("ricette.id"), nullable=False, primary_key=True)
+    utenteId=Column(Integer, ForeignKey("utenti.id"), nullable=False, primary_key=True)
+    utente = relationship("UtenteDB", lazy="joined")
