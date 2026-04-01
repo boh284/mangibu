@@ -11,6 +11,8 @@ class RicettaDB(Base):
     tempoPreparazione = Column(Integer, nullable=False)
     difficolta = Column(String, default="media")
     ingredienti = relationship("RicettaIngredienteDB", lazy="joined")
+    proprietarioId = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    proprietario = relationship("UtenteDB", lazy="joined")
     
 class PianoDB(Base):
     __tablename__ = "piani"
@@ -21,6 +23,8 @@ class PianoDB(Base):
     tipoPasto = Column(String, nullable=False)
     ricettaId = Column(Integer, ForeignKey("ricette.id"), nullable=True)
     ricetta = relationship("RicettaDB", lazy="joined")
+    proprietarioId = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+    proprietario = relationship("UtenteDB", lazy="joined")
     
 class IngredienteDB(Base):
     __tablename__ = "ingredienti"
@@ -36,3 +40,14 @@ class RicettaIngredienteDB(Base):
     quantita=Column(String, nullable=False)
     facoltativo=Column(Boolean, nullable=False)
     ingrediente=relationship("IngredienteDB", lazy="joined")
+
+class UtenteDB(Base):
+    __tablename__="utenti"
+    
+    id=Column(Integer, primary_key=True, index=True)
+    username=Column(String, nullable=False, unique=True)
+    email=Column(String, nullable=False, unique=True)
+    passwordHash=Column(String, nullable=False)
+    attivo=Column(Boolean, default=True)
+
+    
